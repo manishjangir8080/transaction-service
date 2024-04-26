@@ -5,6 +5,8 @@ spring:
   application:
     name: transfer-service
   kafka:
+    state:
+      dir: /tmp/kafka-streams/bank
     producer:
       bootstrap-servers: localhost:29092
       key-serializer: org.apache.kafka.common.serialization.StringSerializer

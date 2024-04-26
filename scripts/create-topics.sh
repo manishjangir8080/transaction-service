@@ -7,14 +7,14 @@ kafka-topics \
   --bootstrap-server kafka:9092 \
   --topic transactions \
   --replication-factor 1 \
-  --partitions 4 \
+  --partitions 1 \
   --create
 
 kafka-topics \
   --bootstrap-server kafka:9092 \
   --topic account-balances \
   --replication-factor 1 \
-  --partitions 4 \
+  --partitions 1 \
   --create
 
 sleep infinity

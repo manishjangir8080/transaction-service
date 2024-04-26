@@ -2,6 +2,8 @@ package com.marlow.v1.configuration;
 
 import com.marlow.v1.dto.TransactionRequest;
 import com.marlow.v1.model.AccountBalance;
+import com.marlow.v1.reader.PropertyReader;
+import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
@@ -38,27 +40,35 @@ import static org.springframework.kafka.annotation.KafkaStreamsDefaultConfigurat
 @EnableKafka
 @EnableKafkaStreams
 @Slf4j
+@AllArgsConstructor
 public class KafkaStreamsConfig {
+
+    private final PropertyReader propertyReader;
 
     @Bean(name = DEFAULT_STREAMS_CONFIG_BEAN_NAME)
     public KafkaStreamsConfiguration kafkaStreamsConfiguration() {
         Map<String, Object> props = new HashMap<>();
-        props.put(APPLICATION_ID_CONFIG, "account-balance");
-        props.put(BOOTSTRAP_SERVERS_CONFIG, "localhost:29092");
+        props.put(APPLICATION_ID_CONFIG, propertyReader.getSpringApplicationName());
+        props.put(BOOTSTRAP_SERVERS_CONFIG, propertyReader.getKafkaBootstrapServers());
         props.put(DEFAULT_KEY_SERDE_CLASS_CONFIG, StringDeserializer.class);
         props.put(DEFAULT_VALUE_SERDE_CLASS_CONFIG, JsonDeserializer.class);
-        props.put(STATE_DIR_CONFIG, "/tmp/kafka-streams/bank");
+        props.put(STATE_DIR_CONFIG, propertyReader.getKafkaStateDir());
 
         return new KafkaStreamsConfiguration(props);
     }
 
     @Bean
     public StreamsBuilder buildPipeline(StreamsBuilder streamsBuilder) {
+        // Kafka Serializer for TransactionRequest
         Serde<TransactionRequest> transactionRequestSerdes = new JsonSerde<>(TransactionRequest.class);
+        // Kafka Serializer for AccountBalance
         Serde<AccountBalance> accountBalanceSerde = new JsonSerde<>(AccountBalance.class);
+        // KStream to process Transactions
         KStream<String, AccountBalance> accountBalancesStream = streamsBuilder.stream(TRANSACTION_TOPIC,
                         Consumed.with(Serdes.String(), transactionRequestSerdes))
+                // Grouping transactions by accountNo(Key)
                 .groupByKey()
+                // Aggregating all transactions to derive AccountBalance at current state
                 .aggregate(AccountBalance::new,
                         (key, value, aggregate) -> aggregate.process(value),
                         Materialized.<String, AccountBalance, KeyValueStore<Bytes, byte[]>>
@@ -66,6 +76,7 @@ public class KafkaStreamsConfig {
                                 .withKeySerde(Serdes.String())
                                 .withValueSerde(accountBalanceSerde))
                 .toStream();
+        // Publish AccountBalance for notification
         accountBalancesStream
                 .to(ACCOUNT_BALANCES_TOPIC, Produced.with(Serdes.String(), accountBalanceSerde));
         return streamsBuilder;

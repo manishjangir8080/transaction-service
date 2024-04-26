@@ -20,6 +20,6 @@ public class AccountBalance {
 
     private String customerId;
     private String accountNo;
-    private BigDecimal amount = ZERO;
+    private BigDecimal balance = ZERO;
     private List<TransactionRequest> transactionRequests = new ArrayList<>();
 }

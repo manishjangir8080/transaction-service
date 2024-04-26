@@ -20,14 +20,15 @@ public class AccountBalance {
 
     private String customerId;
     private String accountNo;
-    private BigDecimal amount = ZERO;
+    private BigDecimal balance = ZERO;
     private List<TransactionRequest> transactionRequests = new ArrayList<>();
 
     public AccountBalance process(TransactionRequest transactionRequest) {
         this.accountNo = transactionRequest.getAccountNo();
-        if (this.amount.add(transactionRequest.getAmount()).compareTo(ZERO) >= 0) {
+        this.customerId = transactionRequest.getCustomerId();
+        if (this.balance.add(transactionRequest.getAmount()).compareTo(ZERO) >= 0) {
             transactionRequest.setTransactionStatus(SUCCESS);
-            this.amount = this.amount.add(transactionRequest.getAmount());
+            this.balance = this.balance.add(transactionRequest.getAmount());
         } else {
             transactionRequest.setTransactionStatus(FAILED);
         }
